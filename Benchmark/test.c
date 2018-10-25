@@ -28,6 +28,7 @@
 
 
 #include "my_pthread_t.h"
+#include "my_malloc.h"
 
 my_pthread_t tid[2];
 int counter;

@@ -14,6 +14,8 @@
 #include <unistd.h>
 #include <sys/syscall.h>
 #include <sys/types.h>
+#include <sys/queue.h>
+#include <ucontext.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -31,6 +33,17 @@ typedef struct threadControlBlock {
 typedef uint my_pthread_mutex_t;
 
 /* define your data structures here: */
+
+typedef struct _thread_info_t{
+	ucontext_t* context;
+	int run_ms; // run for how long
+	int mu; // hanlde, same as my_thread_mutex_t
+	int tid; // it's thread id, but also take one slot in mutex_table
+	void* stack;
+	STAILQ_ENTRY(_thread_info_t) list;
+} thread_info_t;
+
+extern thread_info_t* CURRENT;
 
 // Feel free to add your own auxiliary data structures
 

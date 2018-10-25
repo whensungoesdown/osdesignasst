@@ -11,6 +11,7 @@
 #include <pthread.h>
 
 #include "my_pthread_t.h"
+#include "my_malloc.h"
 
 #define DEFAULT_THREAD_NUM 2
 #define RAM_SIZE 160

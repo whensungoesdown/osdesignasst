@@ -16,6 +16,10 @@
 #include <stdbool.h>
 #include "my_pthread_t.h"
 
+//
+// Don't include my_malloc.h 
+// don't want to use mymalloc in the pthread lib
+void reclaim_current_heap();
 
 #define errExit(msg)    do { perror(msg); exit(EXIT_FAILURE); \
 } while (0)
@@ -27,15 +31,6 @@ int g_threads_cnt = 0;
 
 int g_pthread_init = false;
 //-----------------------------------------------------------------------------//
-typedef struct _thread_info_t{
-	ucontext_t* context;
-	int run_ms; // run for how long
-	int mu; // hanlde, same as my_thread_mutex_t
-	int tid; // it's thread id, but also take one slot in mutex_table
-	void* stack;
-	STAILQ_ENTRY(_thread_info_t) list;
-} thread_info_t;	
-
 thread_info_t* CURRENT;
 
 STAILQ_HEAD(_thread_info_queue, _thread_info_t);
@@ -196,6 +191,7 @@ int thread_stub (void *(*function)(void*), void * arg)
 	free_mutex(CURRENT->tid);
 
 	free_thread_info(CURRENT);
+	reclaim_current_heap();
 	CURRENT = NULL;
 	schedule();
 }	
@@ -268,6 +264,7 @@ void my_pthread_exit(void *value_ptr) {
 	release_all_thread(CURRENT->tid);
 	free_mutex(CURRENT->tid);
 	free_thread_info(CURRENT);
+	reclaim_current_heap();
 	CURRENT = NULL;
 	schedule();
 };
@@ -296,7 +293,11 @@ int alloc_mutex(void)
 {
 	int i = 0;
 
-	for (i = 0; i < MAX_MUTEX_NUM; i++) {
+	//
+	//  Saved 0 for main thead
+	//
+
+	for (i = 1; i < MAX_MUTEX_NUM; i++) {
 		if (false == g_mutex_table[i].used) {
 			g_mutex_table[i].used = true;
 			g_mutex_table[i].count = 0;
