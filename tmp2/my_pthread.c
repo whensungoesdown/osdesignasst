@@ -199,9 +199,10 @@ void my_pthread_init(void)
 
 int thread_stub (void *(*function)(void*), void * arg)
 {
+	int ret = 0;
 
-	function(arg);
-	printf("user thread returned to thread stub\n");
+	ret = function(arg);
+	printf("user thread returned to thread stub, return value 0x%x\n", ret);
 
 	// reclaim resouce for this thread.
 	// call scheduler()
