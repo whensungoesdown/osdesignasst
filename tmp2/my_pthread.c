@@ -31,6 +31,28 @@ int g_threads_cnt = 0;
 
 int g_pthread_init = false;
 //-----------------------------------------------------------------------------//
+int g_queue_spinlock = 0;
+
+int acquire_queue_spinlock()
+{
+	// mask interrupt
+	// Since we can't execute privileged instructions such as STI CLI
+	// simply disable timer signal to emulate it.
+
+	stop_timer(); // CLI
+
+	while (0 != g_queue_spinlock) {}
+
+	g_queue_spinlock = 1;
+
+	start_timer(); // STI
+}
+
+void release_queue_spinlock()
+{
+	g_queue_spinlock = 0;
+}
+//-----------------------------------------------------------------------------//
 thread_info_t* CURRENT;
 
 STAILQ_HEAD(_thread_info_queue, _thread_info_t);
@@ -91,9 +113,12 @@ void schedule()
 	if (NULL == CURRENT) { 
 
 		// schedule after one thread exit
+		acquire_queue_spinlock();
 
 		CURRENT = STAILQ_FIRST(&g_queue_ready);
 		STAILQ_REMOVE_HEAD(&g_queue_ready, list);
+
+		release_queue_spinlock();
 
 		setcontext(CURRENT->context);
 		
@@ -104,10 +129,14 @@ void schedule()
 
 		mm_store_virtual_pages_back();
 
+		acquire_queue_spinlock();
+
 		CURRENT = STAILQ_FIRST(&g_queue_ready);
 		STAILQ_REMOVE_HEAD(&g_queue_ready, list);
 
 		STAILQ_INSERT_TAIL(&g_queue_ready, tmp, list);
+		
+		release_queue_spinlock();
 
 		swapcontext(tmp->context, CURRENT->context);
 
@@ -130,10 +159,14 @@ void schedule_swap_current_to_wait()
 
 	mm_store_virtual_pages_back();
 
+	acquire_queue_spinlock();
+
 	CURRENT = STAILQ_FIRST(&g_queue_ready);
 	STAILQ_REMOVE_HEAD(&g_queue_ready, list);
 
 	STAILQ_INSERT_TAIL(&g_queue_wait, tmp, list);
+
+	release_queue_spinlock();
 
 	swapcontext(tmp->context, CURRENT->context);
 
@@ -151,21 +184,31 @@ void timer_handler (int signum)
 	//	 else {
 	//		 swapcontext(&uctx_main, &uctx_thread0);
 	//	 }
-
+	
 	schedule();
 }
 
-void my_pthread_init(void)
+
+void stop_timer()
 {
-	struct sigaction sa;
 	struct itimerval timer;
 
-	g_pthread_init = true;
-	
-	/* Install timer_handler as the signal handler for SIGVTALRM. */
-	memset (&sa, 0, sizeof (sa));
-	sa.sa_handler = &timer_handler;
-	sigaction (SIGVTALRM, &sa, NULL);
+	/* Configure the timer to expire after 25 msec... */
+	timer.it_value.tv_sec = 0;
+	timer.it_value.tv_usec = 0;
+	/* ... and every 250 msec after that. */
+	timer.it_interval.tv_sec = 0;
+	timer.it_interval.tv_usec = 0;
+	/* Start a virtual timer. It counts down whenever this process is
+	 *    executing. */
+	setitimer (ITIMER_VIRTUAL, &timer, NULL);
+
+
+}
+
+void start_timer()
+{
+	struct itimerval timer;
 
 	/* Configure the timer to expire after 25 msec... */
 	timer.it_value.tv_sec = 0;
@@ -176,7 +219,21 @@ void my_pthread_init(void)
 	/* Start a virtual timer. It counts down whenever this process is
 	 *    executing. */
 	setitimer (ITIMER_VIRTUAL, &timer, NULL);
+}
 
+void my_pthread_init(void)
+{
+	struct sigaction sa;
+
+	g_pthread_init = true;
+	
+	/* Install timer_handler as the signal handler for SIGVTALRM. */
+	memset (&sa, 0, sizeof (sa));
+	sa.sa_handler = &timer_handler;
+	sigaction (SIGVTALRM, &sa, NULL);
+		
+	start_timer();
+	
 	srand(time(NULL));
 
 	// same as the STAILQ_HEAD_INITIALIZER
@@ -217,6 +274,7 @@ int thread_stub (void *(*function)(void*), void * arg)
 	free_thread_info(CURRENT);
 	//reclaim_current_heap();
 	CURRENT = NULL;
+
 	schedule();
 }	
 
@@ -259,16 +317,17 @@ int my_pthread_create(my_pthread_t * thread, pthread_attr_t * attr, void *(*func
 	ti->context->uc_link = 0;
 	makecontext(ti->context, thread_stub, 2, function, arg);
 
-	//if (swapcontext(&uctx_main, &uctx_thread0) == -1)
-	//	errExit("swapcontext");
-
-	STAILQ_INSERT_TAIL(&g_queue_ready, ti, list);
-
 
 	// pthread_join will wait on it
 	ti->tid = alloc_mutex();
 	*thread = ti->tid;
 	g_mutex_table[*thread].count = 1;
+
+	
+	acquire_queue_spinlock();
+	// After everything is setup, add it to the queue
+	STAILQ_INSERT_TAIL(&g_queue_ready, ti, list);
+	release_queue_spinlock();
 
 	printf("my_pthread_create return\n");
 	return 0;
@@ -276,7 +335,7 @@ int my_pthread_create(my_pthread_t * thread, pthread_attr_t * attr, void *(*func
 
 /* give CPU pocession to other user level threads voluntarily */
 int my_pthread_yield() {
-
+	
 	schedule();
 	return 0;
 };
@@ -378,7 +437,8 @@ void release_thread(my_pthread_mutex_t mu)
 	//
 	
 	thread_info_t* ti;
-
+	
+	acquire_queue_spinlock();
 	STAILQ_FOREACH(ti, &g_queue_wait, list) {
 
 		if (mu  == ti->mu) {
@@ -388,6 +448,7 @@ void release_thread(my_pthread_mutex_t mu)
 			break;
 		}
 	}
+	release_queue_spinlock();
 }
 
 void release_all_thread(my_pthread_mutex_t mu)
@@ -398,6 +459,8 @@ void release_all_thread(my_pthread_mutex_t mu)
 	
 	thread_info_t* ti;
 
+	acquire_queue_spinlock();
+
 	STAILQ_FOREACH(ti, &g_queue_wait, list) {
 
 		if (mu  == ti->mu) {
@@ -405,6 +468,8 @@ void release_all_thread(my_pthread_mutex_t mu)
 			STAILQ_INSERT_TAIL(&g_queue_ready, ti, list);
 		}
 	}
+
+	release_queue_spinlock();
 }
 /* release the mutex lock */
 int my_pthread_mutex_unlock(my_pthread_mutex_t *mutex) {
