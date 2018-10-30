@@ -64,7 +64,10 @@ and move it to the waiting queue for thread termination.
 If not, it will change the thread_info structures back to the initial conditions,
 where `mutex.used` is set back to false, and the `count = 0`.  
 
-
+We added a spinlock mechanism to protect the two thread queues: g_queue_ready and 
+g_queue_wait. We did this to stop the time accordingly, in order to simulate a
+an interrupt flag or CLI STI instruction and causes the processor to ignore 
+an external interrupt. 
 
 
 
