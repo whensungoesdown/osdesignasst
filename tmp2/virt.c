@@ -15,7 +15,7 @@ int g_pfn_count = 0;
 void panic(char* errormsg)
 {
 	printf("!!!!!!!!!!!!!!PANIC!!!!!!!!!!!!!!!!!!!\n");
-	printf(errormsg);
+	printf("%s", errormsg);
 	exit(EXIT_FAILURE);
 }
 
@@ -28,11 +28,11 @@ static void pagefault_handler(int sig, siginfo_t *si, void *unused)
 
 
 
-	printf("Got SIGSEGV at address: 0x%lx, page: 0x%lx\n",(long) si->si_addr, pageva);
+	printf("Got SIGSEGV at address: 0x%p, page: 0x%p\n", si->si_addr, pageva);
 
-	if (si->si_addr >= VIRTUAL_HEAP_START && si->si_addr < VIRTUAL_HEAP_END) {
+	if (si->si_addr >= (void*)VIRTUAL_HEAP_START && si->si_addr < (void*)VIRTUAL_HEAP_END) {
 		pte_index = mi_getpteindex(si->si_addr);
-		printf("PTE: 0x%x\n", CURRENT->pagetables[pte_index].u.Long);
+		printf("PTE: 0x%x\n", (int) (int) (int) (int) (int) (int) (int) (int) (int) CURRENT->pagetables[pte_index].u.Long);
 		if (0 == CURRENT->pagetables[pte_index].u.hard.valid) {
 			if (1 == CURRENT->pagetables[pte_index].u.soft.swapout) {
 				// swap in 
@@ -114,7 +114,7 @@ int mm_init ()
 		printf("mmap failed\n");
 		return -1;
 	}
-	memset(VIRTUAL_HEAP_START, 0, VIRTUAL_HEAP_END - VIRTUAL_HEAP_START);
+	memset((void*)VIRTUAL_HEAP_START, 0, VIRTUAL_HEAP_END - VIRTUAL_HEAP_START);
 
 
 	// init swap file
@@ -233,7 +233,7 @@ int evict_page(thread_info_t* thread)
 					g_pfn[i].thread->pagetables[j].u.soft.swapout = 1;
 					g_pfn[i].thread->pagetables[j].u.soft.gefilea_pos = offset;
 					
-					printf("find VA 0x%lx, offset 0x%x\n", VIRTUAL_HEAP_START + j * PAGE_SIZE, offset);
+					printf("find VA 0x%x, offset 0x%x\n", VIRTUAL_HEAP_START + j * PAGE_SIZE, offset);
 					// the page evicted is not from the current thread
 					//mprotect(addr, PAGE_SIZE, PROT_READ|PROT_WRITE|PROT_EXEC);
 

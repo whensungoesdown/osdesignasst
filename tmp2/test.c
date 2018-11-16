@@ -28,7 +28,7 @@ void* bigspender (void *arg)
 
 	while(1) {
 		p = malloc(512);
-		printf("bigspender: malloc buffer 512 byte, address 0x%lx\n", p);
+		printf("bigspender: malloc buffer 512 byte, address 0x%p\n", p);
 
 		for (i = 0; i < 0x1FFFFFFF; i ++) {}
 
@@ -39,7 +39,7 @@ void* bigspender (void *arg)
 		for (i = 0; i < 0x1FFFFFFF; i ++) {}
 
 		printf("bigspender: read buffer again\n");
-		printf("bigspender: %s\n", p);
+		printf("bigspender: %s\n", (char*)p);
 
 		for (i = 0; i < 0x1FFFFFFF; i ++) {}
 		
@@ -62,7 +62,7 @@ void* tester (void *arg)
 
 	while(1) {
 		p = malloc(512);
-		printf("tester: malloc buffer 512 byte, address 0x%lx\n", p);
+		printf("tester: malloc buffer 512 byte, address 0x%p\n", p);
 
 		for (i = 0; i < 0x1FFFFFFF; i ++) {}
 
@@ -73,7 +73,7 @@ void* tester (void *arg)
 		for (i = 0; i < 0x1FFFFFFF; i ++) {}
 
 		printf("tester: read buffer again\n");
-		printf("tester: %s\n", p);
+		printf("tester: %s\n", (char*)p);
 
 		for (i = 0; i < 0x1FFFFFFF; i ++) {}
 		

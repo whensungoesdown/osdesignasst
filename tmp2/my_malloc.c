@@ -66,10 +66,10 @@ int my_malloc_init()
 	mm_allocate_page();
 
 	g_metadata = VIRTUAL_HEAP_START;
-	printf("tid %d, malloc: g_metadata 0x%x\n", get_tid(), g_metadata);
+	printf("tid %d, malloc: g_metadata 0x%p\n", get_tid(), g_metadata);
 
 	g_heap_pages = VIRTUAL_HEAP_START + PAGE_SIZE;
-	printf("tid %d, malloc: g_heap_pages 0x%x\n", get_tid(), g_heap_pages);
+	printf("tid %d, malloc: g_heap_pages 0x%p\n", get_tid(), g_heap_pages);
 
 
 	set_heap_trunk_count(1);
@@ -157,7 +157,7 @@ void *my_malloc(size_t size)
 
 	int trunk_count = 0;
 
-	printf("malloc %d bytes\n", size);
+	printf("malloc %d bytes\n", (int)size);
 
 	if (false == get_heap_init()) {
 		my_malloc_init();
@@ -219,7 +219,7 @@ void _free(heap_metadata_t* metadata, void* base, void *ptr)
 
 	if (offset < 0 || offset >= PAGE_SIZE) {
 		printf("_free() error, out of range\n");
-		return NULL;
+		return;
 	}
 
 	if ((0 == (offset / 0x400)) && (0 == (offset % 32))) {
@@ -291,7 +291,7 @@ void my_free(void *ptr)
 	int offset = 0;
 	int trunk = 0;
 
-	printf("free buffer 0x%x\n", ptr);
+	printf("free buffer 0x%p\n", ptr);
 
 	//
 	//  Hack, CURRENT == NULL, means that the main thread call malloc before

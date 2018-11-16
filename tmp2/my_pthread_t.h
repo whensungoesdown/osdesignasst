@@ -80,6 +80,14 @@ int my_pthread_mutex_unlock(my_pthread_mutex_t *mutex);
 /* destroy the mutex */
 int my_pthread_mutex_destroy(my_pthread_mutex_t *mutex);
 
+//-----------------------------------------------------------------------------//
+
+int alloc_mutex(void);
+void free_mutex(int mu);
+void release_all_thread(my_pthread_mutex_t mu);
+void start_timer();
+void stop_timer();
+//-----------------------------------------------------------------------------//
 #define USE_MY_PTHREAD 1
 
 #ifdef USE_MY_PTHREAD

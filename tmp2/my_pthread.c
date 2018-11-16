@@ -46,6 +46,8 @@ int acquire_queue_spinlock()
 	g_queue_spinlock = 1;
 
 	start_timer(); // STI
+	
+	return 0;
 }
 
 void release_queue_spinlock()
@@ -254,7 +256,7 @@ void my_pthread_init(void)
 	mm_init();
 }
 
-int thread_stub (void *(*function)(void*), void * arg)
+void thread_stub (void *(*function)(void*), void * arg)
 {
 	int ret = 0;
 
@@ -267,7 +269,7 @@ int thread_stub (void *(*function)(void*), void * arg)
 	// main thread won't be here
 	//while(1) {};
 	
-	release_all_thread(CURRENT->tid);
+	release_all_thread((my_pthread_mutex_t)CURRENT->tid);
 	free_mutex(CURRENT->tid);
 
 	free_thread_pages(CURRENT);
@@ -391,7 +393,7 @@ int alloc_mutex(void)
 	return -1;
 }
 
-void free_mutex(int  mu)
+void free_mutex(int mu)
 {
 	g_mutex_table[mu].count = 0;
 	g_mutex_table[mu].used = false;
@@ -428,6 +430,8 @@ int my_pthread_mutex_lock(my_pthread_mutex_t *mutex) {
 		CURRENT->mu = *mutex;
 		schedule_swap_current_to_wait();
 	}
+
+	return 0;
 };
 
 void release_thread(my_pthread_mutex_t mu)
