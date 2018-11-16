@@ -3,6 +3,7 @@
 #include <unistd.h>
 #include <sys/types.h>
 #include "virt.h"
+#include "debug.h"
 
 void panic(char*);
 //-----------------------------------------------------------------------------//
@@ -64,7 +65,7 @@ int swap_out (void* addr)
 
 	offset = i * PAGE_SIZE;
 	
-	printf("swap_out: phyiscal address 0x%p, offset in file 0x%x\n", addr, offset);
+	debug_printf("swap_out: phyiscal address 0x%p, offset in file 0x%x\n", addr, offset);
 	fp = fopen(SWAP_FILE_NAME, "rb+");
 	if (NULL == fp) {
 		panic("swap_out: Write swap file fail\n");
@@ -99,7 +100,7 @@ void swap_in (int offset, char* buffer)
 	g_swap_count -= 1;
 
 	
-	printf("swap_in: virtual addree 0x%p, offset in file 0x%x\n", buffer, offset);
+	debug_printf("swap_in: virtual addree 0x%p, offset in file 0x%x\n", buffer, offset);
 
 	fp = fopen(SWAP_FILE_NAME, "rb");
 	if (NULL == fp) {
@@ -110,7 +111,7 @@ void swap_in (int offset, char* buffer)
 
 	ret = fread(buffer, 1, PAGE_SIZE, fp);
 
-	printf("swap_in: read swap file 0x%x bytes\n", ret);
+	debug_printf("swap_in: read swap file 0x%x bytes\n", ret);
 	assert(ret == PAGE_SIZE);
 
 	fclose(fp);

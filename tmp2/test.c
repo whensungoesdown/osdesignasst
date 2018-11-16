@@ -18,6 +18,10 @@
 int counter;
 my_pthread_mutex_t lock;
 
+void fake_sleep()
+{
+	for (int i = 0; i < 0x1FFFFFFF; i ++) {}
+}
 
 void* bigspender (void *arg)
 {
@@ -30,23 +34,23 @@ void* bigspender (void *arg)
 		p = malloc(512);
 		printf("bigspender: malloc buffer 512 byte, address 0x%p\n", p);
 
-		for (i = 0; i < 0x1FFFFFFF; i ++) {}
+		fake_sleep();
 
 		printf("bigspender: copy a string to the buffer\n");
 		memset(p, 0, 512);
 		strncpy(p, "This buffer belongs to the bigspender\n", strlen("This buffer belongs to the bigspender\n"));
 
-		for (i = 0; i < 0x1FFFFFFF; i ++) {}
+		fake_sleep();
 
 		printf("bigspender: read buffer again\n");
 		printf("bigspender: %s\n", (char*)p);
 
-		for (i = 0; i < 0x1FFFFFFF; i ++) {}
+		fake_sleep();
 		
 		printf("bigspender: free buffer\n");
 		free(p);
 		
-		for (i = 0; i < 0x1FFFFFFF; i ++) {}
+		fake_sleep();
 	}
 	
 	printf("\n Thread bigspender exit\n");
@@ -64,23 +68,23 @@ void* tester (void *arg)
 		p = malloc(512);
 		printf("tester: malloc buffer 512 byte, address 0x%p\n", p);
 
-		for (i = 0; i < 0x1FFFFFFF; i ++) {}
+		fake_sleep();
 
 		printf("tester: copy a string to the buffer\n");
 		memset(p, 0, 512);
 		strncpy(p, "This buffer belongs to the tester\n", strlen("This buffer belongs to the tester\n"));
 
-		for (i = 0; i < 0x1FFFFFFF; i ++) {}
+		fake_sleep();
 
 		printf("tester: read buffer again\n");
 		printf("tester: %s\n", (char*)p);
 
-		for (i = 0; i < 0x1FFFFFFF; i ++) {}
+		fake_sleep();
 		
 		printf("tester: free buffer\n");
 		free(p);
 		
-		for (i = 0; i < 0x1FFFFFFF; i ++) {}
+		fake_sleep();
 	}
 	
 	printf("\n Thread tester exit\n");

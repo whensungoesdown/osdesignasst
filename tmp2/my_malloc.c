@@ -4,6 +4,7 @@
 #include "my_pthread_t.h"
 #include "virt.h"
 #include "syscall.h"
+#include "debug.h"
 
 //#define PAGE_SIZE	0x1000
 
@@ -60,16 +61,16 @@ int my_malloc_init()
 	// each page called a trunk,
 	// at leat have 1 trunk
 	
-	printf("Debug: my_malloc_init 1\n");
+	debug_printf("Debug: my_malloc_init 1\n");
 	mm_allocate_page();
-	printf("\nDebug: my_malloc_init 2\n");
+	debug_printf("\nDebug: my_malloc_init 2\n");
 	mm_allocate_page();
 
 	g_metadata = VIRTUAL_HEAP_START;
-	printf("tid %d, malloc: g_metadata 0x%p\n", get_tid(), g_metadata);
+	debug_printf("tid %d, malloc: g_metadata 0x%p\n", get_tid(), g_metadata);
 
 	g_heap_pages = VIRTUAL_HEAP_START + PAGE_SIZE;
-	printf("tid %d, malloc: g_heap_pages 0x%p\n", get_tid(), g_heap_pages);
+	debug_printf("tid %d, malloc: g_heap_pages 0x%p\n", get_tid(), g_heap_pages);
 
 
 	set_heap_trunk_count(1);
@@ -83,13 +84,13 @@ void* _malloc(heap_metadata_t* metadata, void* base, size_t size)
 	int i = 0;
 
 	if (0 == size) {
-		printf("_malloc: request 0 byte\n");
+		debug_printf("_malloc: request 0 byte\n");
 		return NULL;
 	}
 
 	if (size <= 32) {
 		if (metadata->region32_count >= MAX_REGION32_NUM) {
-			printf("_malloc: 32 region full\n");
+			debug_printf("_malloc: 32 region full\n");
 			return NULL;
 		}
 		for (i = 0; i < MAX_REGION32_NUM; i++) {
@@ -102,7 +103,7 @@ void* _malloc(heap_metadata_t* metadata, void* base, size_t size)
 	
 	} else if (size <= 64) {
 		if (metadata->region64_count >= MAX_REGION64_NUM) {
-			printf("_malloc: 64 region full\n");
+			debug_printf("_malloc: 64 region full\n");
 			return NULL;
 		}
 		for (i = 0; i < MAX_REGION64_NUM; i++) {
@@ -115,7 +116,7 @@ void* _malloc(heap_metadata_t* metadata, void* base, size_t size)
 
 	} else if (size <= 128) {
 		if (metadata->region128_count >= MAX_REGION128_NUM) {
-			printf("_malloc: 128 region full\n");
+			debug_printf("_malloc: 128 region full\n");
 			return NULL;
 		}
 		for (i = 0; i < MAX_REGION128_NUM; i++) {
@@ -128,7 +129,7 @@ void* _malloc(heap_metadata_t* metadata, void* base, size_t size)
 	
 	} else if (size <= 512) {
 		if (metadata->region512_count >= MAX_REGION512_NUM) {
-			printf("_malloc: 512 region full\n");
+			debug_printf("_malloc: 512 region full\n");
 			return NULL;
 		}
 		for (i = 0; i < MAX_REGION512_NUM; i++) {
@@ -139,7 +140,7 @@ void* _malloc(heap_metadata_t* metadata, void* base, size_t size)
 			}
 		}
 	} else {
-		printf("_malloc: request too large buffer");
+		debug_printf("_malloc: request too large buffer");
 		return NULL;
 	}
 	
@@ -157,7 +158,7 @@ void *my_malloc(size_t size)
 
 	int trunk_count = 0;
 
-	printf("malloc %d bytes\n", (int)size);
+	debug_printf("malloc %d bytes\n", (int)size);
 
 	if (false == get_heap_init()) {
 		my_malloc_init();
@@ -181,7 +182,7 @@ void *my_malloc(size_t size)
 
 	trunk_count = get_heap_trunk_count();
 
-	printf("tid %d, malloc: trunk_count %d\n", get_tid(), trunk_count);
+	debug_printf("tid %d, malloc: trunk_count %d\n", get_tid(), trunk_count);
 
 
 	for (i = 0; i < trunk_count; i++) {
@@ -196,7 +197,7 @@ void *my_malloc(size_t size)
 
 	// need new trunk, a new page
 
-	printf("tid %d, malloc: allocate a new trunk\n", get_tid());
+	debug_printf("tid %d, malloc: allocate a new trunk\n", get_tid());
 
 	mm_allocate_page();
 	trunk_count += 1;
@@ -218,14 +219,14 @@ void _free(heap_metadata_t* metadata, void* base, void *ptr)
 	offset = (int)(ptr - base);
 
 	if (offset < 0 || offset >= PAGE_SIZE) {
-		printf("_free() error, out of range\n");
+		debug_printf("_free() error, out of range\n");
 		return;
 	}
 
 	if ((0 == (offset / 0x400)) && (0 == (offset % 32))) {
 
 		if (0 == metadata->region32_count) {
-			printf("_free error\n");
+			debug_printf("_free error\n");
 			return;
 		}
 
@@ -234,12 +235,12 @@ void _free(heap_metadata_t* metadata, void* base, void *ptr)
 			metadata->region32[slot] = 0;
 			metadata->region32_count -= 1;
 		} else {
-			printf("_free error\n");
+			debug_printf("_free error\n");
 		}
 	
 	} else if ((1 == (offset / 0x400)) && (0 == (offset % 64))) {
 		if (0 == metadata->region64_count) {
-			printf("_free error\n");
+			debug_printf("_free error\n");
 			return;
 		}
 
@@ -248,11 +249,11 @@ void _free(heap_metadata_t* metadata, void* base, void *ptr)
 			metadata->region64[slot] = 0;
 			metadata->region64_count -= 1;
 		} else {
-			printf("_free error\n");
+			debug_printf("_free error\n");
 		}
 	} else if ((2 == (offset / 0x400)) && (0 == (offset % 128))) {
 		if (0 == metadata->region128_count) {
-			printf("_free error\n");
+			debug_printf("_free error\n");
 			return;
 		}
 
@@ -261,11 +262,11 @@ void _free(heap_metadata_t* metadata, void* base, void *ptr)
 			metadata->region128[slot] = 0;
 			metadata->region128_count -= 1;
 		} else {
-			printf("_free error\n");
+			debug_printf("_free error\n");
 		}
 	} else if ((3 == (offset / 0x400)) && (0 == (offset % 512))) {
 		if (0 == metadata->region512_count) {
-			printf("_free error\n");
+			debug_printf("_free error\n");
 			return;
 		}
 
@@ -274,10 +275,10 @@ void _free(heap_metadata_t* metadata, void* base, void *ptr)
 			metadata->region512[slot] = 0;
 			metadata->region512_count -= 1;
 		} else {
-			printf("_free error\n");
+			debug_printf("_free error\n");
 		}
 	} else {
-		printf("_free error, ptr misalign\n");
+		debug_printf("_free error, ptr misalign\n");
 		return;
 	}
 }
@@ -291,7 +292,7 @@ void my_free(void *ptr)
 	int offset = 0;
 	int trunk = 0;
 
-	printf("free buffer 0x%p\n", ptr);
+	debug_printf("free buffer 0x%p\n", ptr);
 
 	//
 	//  Hack, CURRENT == NULL, means that the main thread call malloc before

@@ -15,6 +15,7 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include "my_pthread_t.h"
+#include "debug.h"
 
 //
 // Don't include my_malloc.h 
@@ -107,7 +108,7 @@ void schedule()
 {
 	thread_info_t* tmp;
 
-	//printf("schedule()\n");
+	//debug_printf("schedule()\n");
 
 	if (STAILQ_EMPTY(&g_queue_ready)) 
 		return;
@@ -151,7 +152,7 @@ void schedule_swap_current_to_wait()
 
 	thread_info_t* tmp;
 	
-	//printf("schedule_swap_current_to_wait()\n");
+	//debug_printf("schedule_swap_current_to_wait()\n");
 	
 	// no other thread to schedule, don't wait let the current thread go
 	if (STAILQ_EMPTY(&g_queue_ready)) 
@@ -178,7 +179,7 @@ void schedule_swap_current_to_wait()
 void timer_handler (int signum)
 {
 	static int count = 0;
-	//printf ("timer expired %d times\n", ++count);
+	//debug_printf ("timer expired %d times\n", ++count);
 
 	//	 if (1 == (count % 2)) {
 	//		 swapcontext(&uctx_thread0, &uctx_main);
@@ -261,7 +262,7 @@ void thread_stub (void *(*function)(void*), void * arg)
 	int ret = 0;
 
 	ret = function(arg);
-	printf("user thread returned to thread stub, return value 0x%x\n", ret);
+	debug_printf("user thread returned to thread stub, return value 0x%x\n", ret);
 
 	// reclaim resouce for this thread.
 	// call scheduler()
@@ -291,7 +292,7 @@ int my_pthread_create(my_pthread_t * thread, pthread_attr_t * attr, void *(*func
 
 	thread_info_t* ti;
 
-	printf("my_pthread_create\n");
+	debug_printf("my_pthread_create\n");
 
 	if (!g_pthread_init) {		
 		my_pthread_init();
@@ -331,7 +332,7 @@ int my_pthread_create(my_pthread_t * thread, pthread_attr_t * attr, void *(*func
 	STAILQ_INSERT_TAIL(&g_queue_ready, ti, list);
 	release_queue_spinlock();
 
-	printf("my_pthread_create return\n");
+	debug_printf("my_pthread_create return\n");
 	return 0;
 };
 

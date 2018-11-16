@@ -4,6 +4,7 @@
 #include "virt.h"
 #include "my_pthread_t.h"
 #include "swap.h"
+#include "debug.h"
 //-----------------------------------------------------------------------------//
 void* g_physical_memory = NULL;
 
@@ -28,11 +29,11 @@ static void pagefault_handler(int sig, siginfo_t *si, void *unused)
 
 
 
-	printf("Got SIGSEGV at address: 0x%p, page: 0x%p\n", si->si_addr, pageva);
+	debug_printf("Got SIGSEGV at address: 0x%p, page: 0x%p\n", si->si_addr, pageva);
 
 	if (si->si_addr >= (void*)VIRTUAL_HEAP_START && si->si_addr < (void*)VIRTUAL_HEAP_END) {
 		pte_index = mi_getpteindex(si->si_addr);
-		printf("PTE: 0x%x\n", (int) (int) (int) (int) (int) (int) (int) (int) (int) CURRENT->pagetables[pte_index].u.Long);
+		debug_printf("PTE: 0x%x\n", (int) (int) (int) (int) (int) (int) (int) (int) (int) CURRENT->pagetables[pte_index].u.Long);
 		if (0 == CURRENT->pagetables[pte_index].u.hard.valid) {
 			if (1 == CURRENT->pagetables[pte_index].u.soft.swapout) {
 				// swap in 
@@ -51,7 +52,7 @@ static void pagefault_handler(int sig, siginfo_t *si, void *unused)
 				mprotect(pageva, PAGE_SIZE, PROT_READ|PROT_WRITE|PROT_EXEC);
 				swap_in(offset, pageva);
 				
-				printf("pagefault_handler: swap_in, directly copy to virtual address space\n");
+				debug_printf("pagefault_handler: swap_in, directly copy to virtual address space\n");
 
 			}
 			else {
@@ -66,7 +67,7 @@ static void pagefault_handler(int sig, siginfo_t *si, void *unused)
 		}		
 	}
 	else {
-		printf("Not within virtual space\n");
+		debug_printf("Not within virtual space\n");
 		// call default handler
 		signal(SIGSEGV, SIG_DFL);
 		raise(SIGSEGV);
@@ -79,7 +80,7 @@ int mm_init ()
 	struct sigaction sa;
 	int i = 0;
 
-	printf("mm_init\n");
+	debug_printf("mm_init\n");
 
 	g_physical_memory = mmap(
 			NULL,
@@ -88,7 +89,7 @@ int mm_init ()
 			MAP_ANONYMOUS|MAP_PRIVATE,
 			-1, 0);
 	if (MAP_FAILED == g_physical_memory) {
-		printf("mmap failed\n");
+		debug_printf("mmap failed\n");
 		return -1;
 	}
 
@@ -111,7 +112,7 @@ int mm_init ()
 			MAP_ANONYMOUS|MAP_PRIVATE,
 			-1, 0);
 	if (MAP_FAILED == addr) {
-		printf("mmap failed\n");
+		debug_printf("mmap failed\n");
 		return -1;
 	}
 	memset((void*)VIRTUAL_HEAP_START, 0, VIRTUAL_HEAP_END - VIRTUAL_HEAP_START);
@@ -127,7 +128,7 @@ int mm_init ()
 
 	if (sigaction(SIGSEGV, &sa, NULL) == -1)
 	{
-		printf("Fatal error setting up signal handler\n");
+		debug_printf("Fatal error setting up signal handler\n");
 		exit(EXIT_FAILURE);    //explode!
 	}	
 	return 0;
@@ -143,7 +144,7 @@ int mm_store_virtual_pages_back()
 			int pfn;
 			pfn = CURRENT->pagetables[i].u.hard.pageframenumber;
 
-			/*printf( "mm_store_virtual_pages_back: "
+			/*debug_printf( "mm_store_virtual_pages_back: "
 					"thread %d, store virtual address 0x%p "
 					"to physical address 0x%p\n", CURRENT->tid,
 					(char*)VIRTUAL_HEAP_START + i * PAGE_SIZE,
@@ -170,7 +171,7 @@ int mm_switch_virtual_pages()
 			int pfn;
 			pfn = CURRENT->pagetables[i].u.hard.pageframenumber;
 
-			/*printf( "mm_switch_virtual_pages: "
+			/*debug_printf( "mm_switch_virtual_pages: "
 					"thread %d, flush physical page 0x%p"
 					" to virtual page 0x%p\n", CURRENT->tid,
 					(char*)g_physical_memory + pfn * PAGE_SIZE,
@@ -187,7 +188,7 @@ int mm_switch_virtual_pages()
 			mprotect((char*)VIRTUAL_HEAP_START + i * PAGE_SIZE, PAGE_SIZE, PROT_NONE);
 
 /*			if (1 == CURRENT->pagetables[i].u.soft.swapout) {
-				printf( "mm_switch_virtual_pages  SWAPOUT PAGE!!!: "
+				debug_printf( "mm_switch_virtual_pages  SWAPOUT PAGE!!!: "
 					"thread %d, virtual page 0x%p swapout, offset 0x%x\n",
 					CURRENT->tid,
 					(char*)VIRTUAL_HEAP_START + i * PAGE_SIZE, CURRENT->pagetables[i].u.soft.gefilea_pos);
@@ -209,20 +210,20 @@ int evict_page(thread_info_t* thread)
 	int j = 0;
 
 
-	printf("evict_page:\n");
+	debug_printf("evict_page:\n");
 
 	for (i = 0; i <  MAX_PHYSICAL_PAGES; i++) {
 		if (1 != g_pfn[i].used) { 
 			continue;
 		}
-		printf("evict_page: pfn 0x%x, thread 0x%p\n", i, g_pfn[i].thread);
+		debug_printf("evict_page: pfn 0x%x, thread 0x%p\n", i, g_pfn[i].thread);
 
 		if (g_pfn[i].thread != CURRENT) {
-			printf("evict_page: evict pfn 0x%x, thread 0x%p\n", i, g_pfn[i].thread);
+			debug_printf("evict_page: evict pfn 0x%x, thread 0x%p\n", i, g_pfn[i].thread);
 			offset = swap_out(g_physical_memory + i * PAGE_SIZE);
 			if (-1 == offset ) {
 				// panic()
-				printf("!!!!!!!!!!!!!!!!!!!!! panic\n");
+				debug_printf("!!!!!!!!!!!!!!!!!!!!! panic\n");
 			}
 
 			for (j = 0; j < MAX_VIRTUAL_PAGES; j++) {
@@ -233,7 +234,7 @@ int evict_page(thread_info_t* thread)
 					g_pfn[i].thread->pagetables[j].u.soft.swapout = 1;
 					g_pfn[i].thread->pagetables[j].u.soft.gefilea_pos = offset;
 					
-					printf("find VA 0x%x, offset 0x%x\n", VIRTUAL_HEAP_START + j * PAGE_SIZE, offset);
+					debug_printf("find VA 0x%x, offset 0x%x\n", VIRTUAL_HEAP_START + j * PAGE_SIZE, offset);
 					// the page evicted is not from the current thread
 					//mprotect(addr, PAGE_SIZE, PROT_READ|PROT_WRITE|PROT_EXEC);
 
@@ -297,13 +298,13 @@ void free_physical_page(int pfn)
 {
 	if (pfn < 0 || pfn >= MAX_PHYSICAL_PAGES) {
 		// panic
-		printf("PANIC!!!!!!!!!!!!!!!");
+		debug_printf("PANIC!!!!!!!!!!!!!!!");
 		return;
 	}
 
 	if (0 == g_pfn[pfn].used) {
 		// panic
-		printf("PANIC!!!!!!!!!!!!!!!");
+		debug_printf("PANIC!!!!!!!!!!!!!!!");
 		return;
 	}
 
@@ -331,7 +332,7 @@ void* mm_allocate_page()
 			mprotect(addr, PAGE_SIZE, PROT_READ|PROT_WRITE|PROT_EXEC);
 			memset(addr, 0, PAGE_SIZE);
 
-			printf("tid %d, mm_allocate_page: virtual 0x%p, pfn 0x%x\n", CURRENT->tid,  addr, pfn);
+			debug_printf("tid %d, mm_allocate_page: virtual 0x%p, pfn 0x%x\n", CURRENT->tid,  addr, pfn);
 			return addr;
 		}
 	}
