@@ -59,8 +59,10 @@ int my_malloc_init()
 	// metadata use the first page
 	// each page called a trunk,
 	// at leat have 1 trunk
-
+	
+	printf("Debug: my_malloc_init 1\n");
 	mm_allocate_page();
+	printf("\nDebug: my_malloc_init 2\n");
 	mm_allocate_page();
 
 	g_metadata = VIRTUAL_HEAP_START;

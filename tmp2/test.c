@@ -1,24 +1,8 @@
-// test case for pthread_join
-// main thread should be able to wait for two new threads end then exit
-//
-// output should be:
-//
-// u@dumb:~/prjs/asst1/tmp$ ./test
-// my_pthread_create
-// my_pthread_create return
-// my_pthread_create
-// my_pthread_create return
-// 
-//  Job 1 started
-// 
-//  Job 1 finished
-// user thread returned to thread stub
-// 
-//  Job 2 started
-// 
-//  Job 2 finished
-// user thread returned to thread stub
-// u@dumb:~/prjs/asst1/tmp$
+// test case for asst2 phase C
+// There are two threads, bigspender and tester.
+// For testing purpose, set physical memory to 8KB, that's 2 pages
+// Bigspender will exhaust physical memory by calling malloc
+// Next tester call one malloc() will trigger physical memory swap to file 
 
 
 #include <stdio.h>
@@ -30,83 +14,102 @@
 #include "my_malloc.h"
 #include "syscall.h"
 
-my_pthread_t tid[2];
+
 int counter;
 my_pthread_mutex_t lock;
 
-void* doSomeThing(void *arg)
+
+void* bigspender (void *arg)
 {
 	void* p = NULL;
-	void* p1 = NULL;
-	void* p2 = NULL;
-	void* p3 = NULL;
-	void* p4 = NULL;
+	int i = 0;
 
-	my_pthread_mutex_lock(&lock);
+	printf("hello from bigspender\n");
 
-	unsigned long i = 0;
-	counter += 1;
-	printf("\n Job %d started\n", counter);
+	while(1) {
+		p = malloc(512);
+		printf("bigspender: malloc buffer 512 byte, address 0x%lx\n", p);
 
-	for (i = 0; i < 100; i++) {
-		p = malloc(50);
-		if (NULL == p) {
-			printf("malloc fail\n");
-			return NULL;
-		}
+		for (i = 0; i < 0x1FFFFFFF; i ++) {}
 
-		memset(p, 'A', 50);
+		printf("bigspender: copy a string to the buffer\n");
+		memset(p, 0, 512);
+		strncpy(p, "This buffer belongs to the bigspender\n", strlen("This buffer belongs to the bigspender\n"));
 
-		//free(p);
+		for (i = 0; i < 0x1FFFFFFF; i ++) {}
+
+		printf("bigspender: read buffer again\n");
+		printf("bigspender: %s\n", p);
+
+		for (i = 0; i < 0x1FFFFFFF; i ++) {}
+		
+		printf("bigspender: free buffer\n");
+		free(p);
+		
+		for (i = 0; i < 0x1FFFFFFF; i ++) {}
 	}
-
 	
-	// Users not suppose to allocate page using mm_allocate_page()
-	// Because this part of virtal memory is reserved for heap only
+	printf("\n Thread bigspender exit\n");
+	return 0;
+}
 
-	//p = mm_allocate_page();
+void* tester (void *arg)
+{
+	void* p = NULL;
+	int i = 0;
 
-	//printf("Current thread %d, mm_allocate_page() 0x%x\n", get_tid(), p);
+	printf("hello from tester\n");
 
-	//sprintf(p, "This is Job %d virtual memory space\n", counter);
+	while(1) {
+		p = malloc(512);
+		printf("tester: malloc buffer 512 byte, address 0x%lx\n", p);
 
-	for(i=0; i<(0xFFFFFFF);i++);
+		for (i = 0; i < 0x1FFFFFFF; i ++) {}
 
+		printf("tester: copy a string to the buffer\n");
+		memset(p, 0, 512);
+		strncpy(p, "This buffer belongs to the tester\n", strlen("This buffer belongs to the tester\n"));
 
+		for (i = 0; i < 0x1FFFFFFF; i ++) {}
 
-	//printf("Current thread %d, memory 0x60000000 %s\n", get_tid(), (void*)0x60000000);
-	printf("\n Job %d finished\n", counter);
+		printf("tester: read buffer again\n");
+		printf("tester: %s\n", p);
 
-	my_pthread_mutex_unlock(&lock);
+		for (i = 0; i < 0x1FFFFFFF; i ++) {}
+		
+		printf("tester: free buffer\n");
+		free(p);
+		
+		for (i = 0; i < 0x1FFFFFFF; i ++) {}
+	}
+	
+	printf("\n Thread tester exit\n");
+	return 0;
 
-	return NULL;
 }
 
 int main(void)
 {
+	my_pthread_t tid_bigspender;
+	my_pthread_t tid_tester;
+	
 	int i = 0;
 	int err;
 
 
 	my_pthread_init();
 
-	if (my_pthread_mutex_init(&lock, NULL) != 0)
-	{
-		printf("\n mutex init failed\n");
-		return 1;
-	}
 
-	while(i < 2)
-	{
-		err = my_pthread_create(&(tid[i]), NULL, &doSomeThing, NULL);
-		if (err != 0)
-			printf("\ncan't create thread :[%s]", strerror(err));
-		i++;
-	}
+	err = my_pthread_create(&tid_bigspender, NULL, bigspender, NULL);
+	if (err != 0)
+		printf("\ncan't create thread :[%s]", strerror(err));
 
-	my_pthread_join(tid[0], NULL);
-	my_pthread_join(tid[1], NULL);
-	my_pthread_mutex_destroy(&lock);
+	err = my_pthread_create(&tid_tester, NULL, tester, NULL);
+	if (err != 0)
+		printf("\ncan't create thread :[%s]", strerror(err));
+	
+	my_pthread_join(tid_bigspender, NULL);
+	my_pthread_join(tid_tester, NULL);
 
 	return 0;
 }

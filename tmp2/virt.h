@@ -20,12 +20,21 @@
 // VIRTUAL_HEAP_START, user cannot specify address.
 
 // emulated physical memory size  8MB
-#define MAX_PHYSICAL_MEMORY 	1024 * 1024 * 8	
+//#define MAX_PHYSICAL_MEMORY 	1024 * 1024 * 8	
+
+// for testing purpose, set physical pages to 2
+#define MAX_PHYSICAL_MEMORY 	1024 * 8	
 
 #define MAX_PHYSICAL_PAGES 	(MAX_PHYSICAL_MEMORY / PAGE_SIZE)
 
-// later need to be extened to a more complicated data structure
-extern char g_pfn[MAX_PHYSICAL_PAGES];
+typedef struct _thread_info_t thread_info_t;
+
+typedef struct _pfn_t {
+	char used;
+	thread_info_t * thread;	
+} pfn_t;
+
+extern pfn_t g_pfn[MAX_PHYSICAL_PAGES];
 
 extern int g_pfn_count;
 
