@@ -15,6 +15,7 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include "my_pthread_t.h"
+#include "shm.h"
 #include "debug.h"
 
 //
@@ -255,6 +256,8 @@ void my_pthread_init(void)
 
 
 	mm_init();
+
+	shinit();
 }
 
 void thread_stub (void *(*function)(void*), void * arg)

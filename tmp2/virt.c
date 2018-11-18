@@ -77,6 +77,7 @@ static void pagefault_handler(int sig, siginfo_t *si, void *unused)
 int mm_init ()
 {
 	void* addr = NULL;
+	void* addr_share = NULL;
 	struct sigaction sa;
 	int i = 0;
 
@@ -107,15 +108,32 @@ int mm_init ()
 
 	addr = mmap(
 			VIRTUAL_HEAP_START,
-			VIRTUAL_HEAP_END - VIRTUAL_HEAP_START,
+			VIRTUAL_HEAP_END - VIRTUAL_HEAP_START + 1,
 			PROT_READ|PROT_WRITE|PROT_EXEC,
 			MAP_ANONYMOUS|MAP_PRIVATE,
 			-1, 0);
 	if (MAP_FAILED == addr) {
-		debug_printf("mmap failed\n");
+		panic("mmap failed\n");
 		return -1;
 	}
-	memset((void*)VIRTUAL_HEAP_START, 0, VIRTUAL_HEAP_END - VIRTUAL_HEAP_START);
+	memset((void*)VIRTUAL_HEAP_START, 0, VIRTUAL_HEAP_END - VIRTUAL_HEAP_START + 1);
+
+	
+	//
+	// Establish virtual share address space
+	//
+
+	addr_share = mmap( VIRTUAL_SHARE_START,
+				MAX_SHARE_PAGES * PAGE_SIZE,
+				PROT_READ|PROT_WRITE|PROT_EXEC,
+				MAP_ANONYMOUS|MAP_PRIVATE,
+				-1, 0);
+	if (MAP_FAILED == addr_share) {
+		panic("mmap failed\n");
+		return -1;
+	}
+	memset((void*)VIRTUAL_SHARE_START, 0, MAX_SHARE_PAGES * PAGE_SIZE);
+
 
 
 	// init swap file

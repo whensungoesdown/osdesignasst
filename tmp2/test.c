@@ -4,6 +4,7 @@
 // Bigspender will exhaust physical memory by calling malloc
 // Next tester call one malloc() will trigger physical memory swap to file 
 
+// Add some test code for shm
 
 #include <stdio.h>
 #include <string.h>
@@ -13,6 +14,7 @@
 #include "my_pthread_t.h"
 #include "my_malloc.h"
 #include "syscall.h"
+#include "shm.h"
 
 
 int counter;
@@ -29,6 +31,8 @@ void* bigspender (void *arg)
 	int i = 0;
 
 	printf("hello from bigspender\n");
+	printf("arg 0x%p\n", arg);
+	printf(":%s\n", (char*)arg);
 
 	while(1) {
 		p = malloc(512);
@@ -63,6 +67,8 @@ void* tester (void *arg)
 	int i = 0;
 
 	printf("hello from tester\n");
+	printf("arg 0x%p\n", arg);
+	printf(":%s\n", (char*)arg);
 
 	while(1) {
 		p = malloc(512);
@@ -100,15 +106,26 @@ int main(void)
 	int i = 0;
 	int err;
 
+	void* pshare_bigspender = NULL;
+	void* pshare_tester = NULL;
 
 	my_pthread_init();
 
+	pshare_bigspender = shalloc(512);
+	memset(pshare_bigspender, 0, 512);
 
-	err = my_pthread_create(&tid_bigspender, NULL, bigspender, NULL);
+	strcpy(pshare_bigspender, "This is the message from main thread, you are the thread bigspender. |||||||| phase D\n");
+
+	err = my_pthread_create(&tid_bigspender, NULL, bigspender, pshare_bigspender);
 	if (err != 0)
 		printf("\ncan't create thread :[%s]", strerror(err));
 
-	err = my_pthread_create(&tid_tester, NULL, tester, NULL);
+
+	pshare_tester = shalloc(512);
+	memset(pshare_tester, 0, 512);
+
+	strcpy(pshare_tester, "This is the message from main thread, you are the thread tester. |||||||| phase D\n");
+	err = my_pthread_create(&tid_tester, NULL, tester, pshare_tester);
 	if (err != 0)
 		printf("\ncan't create thread :[%s]", strerror(err));
 	

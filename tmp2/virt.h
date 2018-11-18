@@ -1,13 +1,29 @@
 #ifndef _VIRT_H_
 #define _VIRT_H_
 
+
+
+#define MI_ROUND_TO_SIZE(LENGTH,ALIGNMENT)     \
+                    (((LENGTH) + ((ALIGNMENT) - 1)) & ~((ALIGNMENT) - 1))
+
+
 #define PAGE_SIZE 	0x1000
 
 // virtual heap memory space, size 64KB
-#define VIRTUAL_HEAP_START 	(0x60000000)
-#define VIRTUAL_HEAP_END	(0x60010000)
+//#define VIRTUAL_HEAP_START 	(0x60000000)
+//#define VIRTUAL_HEAP_END	(0x60010000)
 
-#define MAX_VIRTUAL_PAGES	(VIRTUAL_HEAP_END - VIRTUAL_HEAP_START) / PAGE_SIZE
+
+// asst2, phase d, virtual memory sapce is 8mb-16k
+#define VIRTUAL_HEAP_START 	(0x60000000)
+#define VIRTUAL_HEAP_END	(0x607FBFFF)
+
+#define VIRTUAL_SHARE_START	(0x607FC000)
+#define VIRTUAL_SHARE_END	(0x607FFFFF)
+
+#define MAX_VIRTUAL_PAGES	(MI_ROUND_TO_SIZE(VIRTUAL_HEAP_END - VIRTUAL_HEAP_START, PAGE_SIZE)) / PAGE_SIZE
+#define MAX_SHARE_PAGES		(MI_ROUND_TO_SIZE(VIRTUAL_SHARE_END - VIRTUAL_SHARE_START, PAGE_SIZE)) / PAGE_SIZE
+
 
 // Each "thread" has a page table for 16 pages
 // When switch to another thread, copy valid pages from "physical" pages
@@ -20,10 +36,10 @@
 // VIRTUAL_HEAP_START, user cannot specify address.
 
 // emulated physical memory size  8MB
-//#define MAX_PHYSICAL_MEMORY 	1024 * 1024 * 8	
+#define MAX_PHYSICAL_MEMORY 	1024 * 1024 * 8	
 
 // for testing purpose, set physical pages to 2
-#define MAX_PHYSICAL_MEMORY 	1024 * 8	
+//#define MAX_PHYSICAL_MEMORY 	1024 * 8	
 
 #define MAX_PHYSICAL_PAGES 	(MAX_PHYSICAL_MEMORY / PAGE_SIZE)
 
