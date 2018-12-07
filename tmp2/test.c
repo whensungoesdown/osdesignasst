@@ -22,7 +22,8 @@ my_pthread_mutex_t lock;
 
 void fake_sleep()
 {
-	for (int i = 0; i < 0x1FFFFFFF; i ++) {}
+	int i = 0;
+	for (i = 0; i < 0x1FFFFFFF; i ++) {}
 }
 
 void* bigspender (void *arg)

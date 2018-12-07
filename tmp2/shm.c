@@ -30,6 +30,7 @@ void* shalloc (size_t size)
 {
 	int n = 0;
 	int i = 0;
+	int j = 0;
 	int cnt = 0;
 
 	n = MI_ROUND_TO_SIZE(size, PAGE_SIZE) / PAGE_SIZE;
@@ -65,7 +66,7 @@ void* shalloc (size_t size)
 	//
 	// cnt pages available
 
-	for (int j = i + 1 - cnt; j < i + 1; j++) {
+	for (j = i + 1 - cnt; j < i + 1; j++) {
 		g_share[j] = 1;
 	}
 
